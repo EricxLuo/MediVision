@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 
 export const HexagonCursor: React.FC = () => {
@@ -27,8 +28,8 @@ export const HexagonCursor: React.FC = () => {
       particles.current.push({
         x: e.clientX,
         y: e.clientY,
-        size: 10 + Math.random() * 15,
-        opacity: 0.6,
+        size: 8 + Math.random() * 8, // Smaller size
+        opacity: 0.25, // Much lower initial opacity (was 0.6)
         rotation: Math.random() * Math.PI * 2
       });
     };
@@ -54,9 +55,9 @@ export const HexagonCursor: React.FC = () => {
         const p = particles.current[i];
         
         // Update physics
-        p.opacity -= 0.015;
+        p.opacity -= 0.008; // Slower fade out for longer, subtle trail
         p.size *= 0.96;
-        p.rotation += 0.02;
+        p.rotation += 0.01;
 
         if (p.opacity <= 0 || p.size < 0.5) {
           particles.current.splice(i, 1);
@@ -65,12 +66,12 @@ export const HexagonCursor: React.FC = () => {
 
         // Draw
         ctx.strokeStyle = `rgba(0, 113, 227, ${p.opacity})`; // Apple Blue
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1;
         drawHexagon(p.x, p.y, p.size, p.rotation);
         ctx.stroke();
 
-        // Optional fill
-        ctx.fillStyle = `rgba(0, 113, 227, ${p.opacity * 0.05})`;
+        // Optional fill - very subtle
+        ctx.fillStyle = `rgba(0, 113, 227, ${p.opacity * 0.02})`;
         ctx.fill();
       }
 

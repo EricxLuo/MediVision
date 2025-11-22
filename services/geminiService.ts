@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AnalysisResult, SourceType } from '../types';
 
@@ -20,8 +21,17 @@ const analysisSchema: Schema = {
             type: Type.STRING, 
             enum: [SourceType.HOSPITAL, SourceType.HOME] 
           },
+          category: {
+            type: Type.STRING,
+            enum: ['OTC', 'Rx'],
+            description: "Classify as 'OTC' if available over-the-counter, or 'Rx' if prescription is required."
+          },
+          reasoning: { 
+            type: Type.STRING,
+            description: "Short explanation of why this frequency/dosage was detected. Quote the text from the image if possible. E.g. 'Label says BID'." 
+          }
         },
-        required: ["id", "name", "dosage", "frequency", "source"]
+        required: ["id", "name", "dosage", "frequency", "source", "category", "reasoning"]
       }
     },
     schedule: {
@@ -36,8 +46,19 @@ const analysisSchema: Schema = {
     },
     warnings: {
       type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "List any potential drug interactions or duplications between hospital and home meds."
+      items: { 
+        type: Type.OBJECT,
+        properties: {
+          description: { type: Type.STRING },
+          relatedMedicationIds: { 
+            type: Type.ARRAY, 
+            items: { type: Type.STRING },
+            description: "The IDs of the medications involved in this warning."
+          }
+        },
+        required: ["description", "relatedMedicationIds"]
+      },
+      description: "List potential drug interactions, duplications, or timing warnings."
     }
   },
   required: ["medications", "schedule", "warnings"]
@@ -53,9 +74,11 @@ export const analyzeMedicationImages = async (
     
     TASKS:
     1. EXTRACT Medication Details:
-       - Identify the Name of the drug or supplement.
-       - Identify the Source: 'HOSPITAL' if it looks like a document/list, 'HOME' if it looks like a bottle/label.
-    
+       - Name, Dosage, Frequency.
+       - Identify Source (HOSPITAL/HOME).
+       - **Classify Category**: Determine if the medication is 'OTC' (Over-the-Counter, e.g., vitamins, ibuprofen, supplements) or 'Rx' (Prescription). Use your pharmaceutical knowledge based on the drug name.
+       - **Reasoning**: For every medication, you MUST provide a 'reasoning' field. Explain briefly *why* you extracted that frequency. Did you see "Take 1 daily"? Did you see "BID"? Quote the text from the image to justify your extraction.
+
     2. CRITICAL: FIND THE INSTRUCTIONS FOR BOTTLES:
        - Supplement bottles often have a huge list of "Supplement Facts" or "Ingredients". **IGNORE THIS LIST** for the purpose of dosage frequency.
        - Look specifically for small sections labeled **"Directions"**, **"Suggested Use"**, **"Dosage"**, or **"Posologie"**.
@@ -63,15 +86,16 @@ export const analyzeMedicationImages = async (
        - If a range is given (e.g., "1 to 2 capsules"), pick the maximum for safety or note "1-2".
 
     3. CREATE SCHEDULE:
-       - Assign each medication to Morning, Noon, Evening, or Bedtime based on the instructions.
+       - Assign each medication to Morning, Noon, Evening, or Bedtime.
        - "Daily" or "Once a day" -> Morning.
        - "Twice a day" -> Morning and Evening.
-       - "With meals" -> relevant meal times.
-       - "Before sleep" -> Bedtime.
+       - "Three times a day" -> Morning, Noon, Evening.
+       - "HS" or "Bedtime" -> Bedtime.
 
-    4. SAFETY CHECK:
+    4. SAFETY CHECK (Human-in-the-loop preparation):
        - Detect duplicates (e.g., same ingredient in Hospital list and Home bottle).
        - Flag interactions.
+       - For every warning, **you must list the IDs of the medications involved** in the 'relatedMedicationIds' field.
     
     Output strictly valid JSON matching the schema.
   `;
@@ -98,7 +122,7 @@ export const analyzeMedicationImages = async (
       config: {
         responseMimeType: 'application/json',
         responseSchema: analysisSchema,
-        temperature: 0.1 // Very low temperature for factual extraction
+        temperature: 0.1 
       }
     });
 
@@ -126,7 +150,6 @@ export const generateDoctorIcon = async (): Promise<string | null> => {
       },
     });
     
-    // The image is usually in the candidates content parts
     for (const candidate of response.candidates || []) {
       for (const part of candidate.content.parts) {
         if (part.inlineData) {

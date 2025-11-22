@@ -1,7 +1,11 @@
+
+
 export enum SourceType {
   HOSPITAL = 'HOSPITAL', // From discharge summary
   HOME = 'HOME'          // From home pill bottles
 }
+
+export type MedicationCategory = 'OTC' | 'Rx';
 
 export interface Medication {
   id: string;
@@ -10,7 +14,11 @@ export interface Medication {
   frequency: string;
   instructions: string;
   source: SourceType;
+  category: MedicationCategory; // New field for OTC vs Prescription
+  reasoning?: string; // AI explanation for the chosen frequency
 }
+
+export type TimeSlot = 'morning' | 'noon' | 'evening' | 'bedtime';
 
 export interface DailySchedule {
   morning: string[]; // List of medication IDs or Names
@@ -19,14 +27,32 @@ export interface DailySchedule {
   bedtime: string[];
 }
 
+export interface Warning {
+  description: string;
+  relatedMedicationIds: string[];
+}
+
 export interface AnalysisResult {
   medications: Medication[];
   schedule: DailySchedule;
-  warnings: string[]; // Potential drug interactions
+  warnings: Warning[];
+}
+
+export interface User {
+  name: string;
+  id: string;
+}
+
+export interface HistoryRecord {
+  id: string;
+  date: string;
+  scheduleName: string; // Renamed from patientName
+  data: AnalysisResult;
 }
 
 export enum AppStatus {
   IDLE = 'IDLE',
+  DASHBOARD = 'DASHBOARD',
   ANALYZING = 'ANALYZING',
   REVIEW_PENDING = 'REVIEW_PENDING',
   APPROVED = 'APPROVED'
