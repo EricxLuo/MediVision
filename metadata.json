@@ -1,0 +1,7 @@
+{
+  "name": "Transition Care Hub",
+  "description": "A comprehensive medication management tool for patients transitioning from hospital to home, featuring AI-powered prescription scanning and pharmacist validation.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
