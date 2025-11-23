@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { DailySchedule, Medication, TimeSlot, Warning, UILabels } from '../types';
 import { Card } from './Card';
@@ -178,60 +176,55 @@ const DraggableMedication: React.FC<{
     e.dataTransfer.setData('medId', id);
     e.dataTransfer.setData('fromSlot', slot);
     e.dataTransfer.effectAllowed = 'move';
-    // Add a ghost image styling if desired, browser default usually fine
   };
 
   return (
     <div
       draggable={isEditable}
       onDragStart={handleDragStart}
-      className={`bg-white border border-gray-100 p-4 rounded-2xl flex items-center gap-4 transition-all duration-200 relative group
+      // Responsive padding and gap adjustments
+      className={`bg-white border border-gray-100 p-3 sm:p-4 rounded-2xl flex items-start sm:items-center gap-3 sm:gap-4 transition-all duration-200 relative group
         ${isEditable ? 'cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5' : ''}
       `}
     >
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${med?.category === 'OTC' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
+      {/* Icon size adjustment for mobile */}
+      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0 ${med?.category === 'OTC' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
         {med?.category === 'OTC' ? (
-           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+           <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
            </svg>
         ) : (
-           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+           <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
            </svg>
         )}
       </div>
+      
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 leading-tight text-[15px] truncate pr-8">{med ? med.name : id}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">{med?.dosage}</span>
-          <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${med?.category === 'OTC' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+        {/* Font size adjustment for better readability */}
+        <p className="font-semibold text-gray-900 leading-tight text-sm sm:text-[15px] break-words pr-6">{med ? med.name : id}</p>
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          <span className="text-[10px] sm:text-xs font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">{med?.dosage}</span>
+          <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${med?.category === 'OTC' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
             {med?.category === 'OTC' ? 'OTC' : 'Rx'}
           </span>
         </div>
       </div>
 
-      {/* Move Dropdown for Accessibility/Ease */}
+      {/* Move Dropdown */}
       {isEditable && onMove && (
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <div className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
            <select 
              className="text-[10px] bg-gray-50 border border-gray-200 rounded px-1 py-0.5 text-gray-600 outline-none focus:border-blue-500 cursor-pointer shadow-sm"
              value={slot}
              onChange={(e) => onMove(id, slot, e.target.value as TimeSlot)}
-             onClick={(e) => e.stopPropagation()} // Prevent drag start
+             onClick={(e) => e.stopPropagation()} 
            >
-             <option value="morning">Morning</option>
+             <option value="morning">Morn</option>
              <option value="noon">Noon</option>
-             <option value="evening">Evening</option>
+             <option value="evening">Eve</option>
              <option value="bedtime">Night</option>
            </select>
-        </div>
-      )}
-      
-      {isEditable && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 group-hover:opacity-0 transition-opacity">
-           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-           </svg>
         </div>
       )}
     </div>
@@ -253,51 +246,45 @@ const InteractiveSlot: React.FC<{
     e.preventDefault();
     setIsOver(true);
   };
-
-  const handleDragLeave = () => {
-    setIsOver(false);
-  };
-
+  const handleDragLeave = () => setIsOver(false);
   const handleDrop = (e: React.DragEvent) => {
     if (!isEditable || !onMove) return;
     e.preventDefault();
     setIsOver(false);
     const medId = e.dataTransfer.getData('medId');
     const fromSlot = e.dataTransfer.getData('fromSlot') as TimeSlot;
-    
-    if (medId && fromSlot && fromSlot !== slot) {
-      onMove(medId, fromSlot, slot);
-    }
+    if (medId && fromSlot && fromSlot !== slot) onMove(medId, fromSlot, slot);
   };
 
   return (
+    // Padding adjustment for mobile responsiveness
     <div 
-      className={`relative pl-8 pb-10 last:pb-0 transition-all duration-300 rounded-2xl ${isOver ? 'bg-blue-50 ring-2 ring-blue-200 ring-offset-2 scale-[1.01] -ml-2 pl-10 pr-2 pt-2 z-10 shadow-lg' : ''}`}
+      className={`relative pl-5 sm:pl-8 pb-8 sm:pb-10 last:pb-0 transition-all duration-300 rounded-2xl ${isOver ? 'bg-blue-50 ring-2 ring-blue-200' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Timeline Line */}
-      <div className={`absolute left-[15px] top-10 bottom-0 w-[2px] group-last:hidden transition-colors duration-300 ${isOver ? 'bg-blue-300' : 'bg-gray-100'}`}></div>
+      {/* Timeline Line: Adjust left position to match new padding */}
+      <div className={`absolute left-[9px] sm:left-[15px] top-8 sm:top-10 bottom-0 w-[2px] group-last:hidden transition-colors duration-300 ${isOver ? 'bg-blue-300' : 'bg-gray-100'}`}></div>
       
-      {/* Icon Bubble */}
-      <div className={`absolute left-0 top-0 w-8 h-8 rounded-full border shadow-sm flex items-center justify-center z-10 text-base transition-all duration-300 ${isOver ? 'bg-blue-500 border-blue-600 text-white scale-110 shadow-blue-500/30' : 'bg-white border-gray-200'}`}>
+      {/* Icon Bubble: Slightly reduced size */}
+      <div className={`absolute left-0 top-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full border shadow-sm flex items-center justify-center z-10 text-sm sm:text-base transition-all duration-300 ${isOver ? 'bg-blue-500 border-blue-600 text-white scale-110' : 'bg-white border-gray-200'}`}>
         {icon}
       </div>
 
-      <div className="flex items-baseline gap-3 mb-4 pt-1.5">
-        <h4 className={`text-[15px] font-semibold transition-colors ${isOver ? 'text-blue-700' : 'text-gray-900'}`}>
+      <div className="flex items-baseline gap-2 sm:gap-3 mb-3 sm:mb-4 pt-0.5 sm:pt-1.5 ml-1 sm:ml-0">
+        <h4 className={`text-sm sm:text-[15px] font-semibold transition-colors ${isOver ? 'text-blue-700' : 'text-gray-900'}`}>
            {slot === 'bedtime' ? 'Night' : slot.charAt(0).toUpperCase() + slot.slice(1)}
         </h4>
-        <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-          {slot === 'morning' ? '8:00 AM' : slot === 'noon' ? '12:00 PM' : slot === 'evening' ? '6:00 PM' : '9:00 PM'}
+        <span className="text-[10px] sm:text-xs text-gray-400 font-medium uppercase tracking-wide">
+          {slot === 'morning' ? '8AM' : slot === 'noon' ? '12PM' : slot === 'evening' ? '6PM' : '9PM'}
         </span>
       </div>
       
-      <div className="grid gap-3 min-h-[60px]">
+      <div className="grid gap-2 sm:gap-3 min-h-[40px] sm:min-h-[60px]">
         {medIds.length === 0 && isEditable && (
-          <div className={`border-2 border-dashed rounded-xl p-4 flex items-center justify-center text-xs transition-colors duration-300 ${isOver ? 'border-blue-300 text-blue-500 bg-white' : 'border-gray-100 text-gray-300'}`}>
-             {isOver ? 'Drop Medication Here' : `Drag medication to ${slot === 'bedtime' ? 'night' : slot}`}
+          <div className={`border-2 border-dashed rounded-xl p-3 sm:p-4 flex items-center justify-center text-[10px] sm:text-xs transition-colors duration-300 ${isOver ? 'border-blue-300 text-blue-500 bg-white' : 'border-gray-100 text-gray-300'}`}>
+             {isOver ? 'Drop Here' : 'Empty Slot'}
           </div>
         )}
         {medIds.map(id => {

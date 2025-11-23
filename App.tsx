@@ -6,7 +6,7 @@ import { ScheduleTimeline } from './components/ScheduleTimeline';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { CameraModal } from './components/CameraModal';
-import { analyzeMedicationImages, generateDoctorIcon, translateSchedule } from './services/geminiService';
+import { analyzeMedicationImages, translateSchedule } from './services/geminiService';
 import { AnalysisResult, AppStatus, Medication, TimeSlot, User, HistoryRecord, TranslatedContent } from './types';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -66,13 +66,13 @@ export default function App() {
   const [highlightedMedIds, setHighlightedMedIds] = useState<string[]>([]);
 
   // Generate logo on mount
-  useEffect(() => {
-    const fetchLogo = async () => {
-      const logo = await generateDoctorIcon();
-      if (logo) setDoctorLogo(logo);
-    };
-    fetchLogo();
-  }, []);
+  // useEffect(() => {
+  //   const fetchLogo = async () => {
+  //     const logo = await generateDoctorIcon();
+  //     if (logo) setDoctorLogo(logo);
+  //   };
+  //   fetchLogo();
+  // }, []);
 
   // --- MOVED UP: OAuth Callback Handler (Must be before any returns) ---
   useEffect(() => {
@@ -506,37 +506,40 @@ export default function App() {
   const renderReviewSection = () => {
     if (!data) return null;
     return (
-      <div className="space-y-8 animate-fade-in pb-20">
+      <div className="space-y-6 sm:space-y-8 animate-fade-in pb-20">
         
-        {/* Status Bar */}
-        <div className="glass-panel rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-6 sticky top-20 z-40 bg-white/90 shadow-xl shadow-gray-200/50 backdrop-blur-xl transition-all duration-300">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {/* Status Bar - 手机适配版 (优化了边距和布局) */}
+        <div className="glass-panel rounded-2xl p-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sticky top-4 sm:top-20 z-40 bg-white/95 shadow-xl shadow-gray-200/50 backdrop-blur-xl transition-all duration-300">
+          
+          {/* 左侧标题 */}
+          <div className="flex items-center gap-3 sm:gap-4 w-full lg:w-auto">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-base font-bold text-gray-900">Review Schedule</h3>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900">Review Schedule</h3>
               <p className="text-gray-500 text-xs mt-0.5 hidden sm:block">Verify detected medications. Drag items to reschedule.</p>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-stretch">
+          {/* 右侧操作区：手机上会自动换行并占满宽度 */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
              {/* Schedule Name Input */}
              <input 
                type="text" 
-               placeholder="Enter Schedule Name (e.g. Patient Name)" 
+               placeholder="Schedule Name (e.g. Patient)" 
                value={scheduleName}
                onChange={(e) => setScheduleName(e.target.value)}
-               className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-full focus:ring-blue-500 focus:border-blue-500 block px-4 py-2 outline-none w-full sm:w-64 transition-all"
+               className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block px-4 py-2.5 outline-none w-full sm:w-64 transition-all"
              />
 
-             <div className="flex gap-2">
-               <Button variant="secondary" onClick={goToDashboard} className="flex-1 md:flex-none text-sm py-2">
+             <div className="flex gap-2 w-full sm:w-auto">
+               <Button variant="secondary" onClick={goToDashboard} className="flex-1 sm:flex-none text-xs sm:text-sm py-2.5 justify-center">
                  Cancel
                </Button>
-               <Button onClick={handleApproval} className="flex-1 md:flex-none text-sm shadow-lg shadow-blue-500/20 py-2">
+               <Button onClick={handleApproval} className="flex-1 sm:flex-none text-xs sm:text-sm shadow-lg shadow-blue-500/20 py-2.5 justify-center">
                  Approve
                </Button>
              </div>
@@ -545,8 +548,8 @@ export default function App() {
 
         {/* Warnings with Highlighting */}
         {data.warnings.length > 0 && (
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-6 shadow-sm">
-            <h4 className="text-sm font-bold text-red-600 uppercase tracking-wide mb-3 flex items-center gap-2">
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <h4 className="text-xs sm:text-sm font-bold text-red-600 uppercase tracking-wide mb-3 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
@@ -556,7 +559,7 @@ export default function App() {
               {data.warnings.map((w, i) => (
                 <div 
                   key={i} 
-                  className="flex items-start gap-3 text-gray-700 text-sm p-3 rounded-xl bg-white/50 border border-red-100 hover:bg-red-100/50 transition-colors cursor-pointer"
+                  className="flex items-start gap-3 text-gray-700 text-xs sm:text-sm p-3 rounded-xl bg-white/50 border border-red-100 hover:bg-red-100/50 transition-colors cursor-pointer"
                   onMouseEnter={() => setHighlightedMedIds(w.relatedMedicationIds)}
                   onMouseLeave={() => setHighlightedMedIds([])}
                 >
@@ -568,7 +571,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Content Grid */}
+        {/* Content Grid - 手机单列，电脑双列 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MedicationList 
             medications={data.medications} 
@@ -668,7 +671,7 @@ export default function App() {
     <div className="min-h-screen bg-[#FBFBFD]">
       {renderHeader()}
       
-      <main className="max-w-6xl mx-auto px-6 pt-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-12">
         
         {status === AppStatus.DASHBOARD && (
           <Dashboard 
