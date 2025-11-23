@@ -46,7 +46,7 @@ export interface User {
 export interface HistoryRecord {
   id: string;
   date: string;
-  scheduleName: string; // Renamed from patientName
+  scheduleName: string;
   data: AnalysisResult;
 }
 

@@ -69,36 +69,36 @@ export const analyzeMedicationImages = async (
 ): Promise<AnalysisResult> => {
 
   const prompt = `
-    You are an expert clinical pharmacist and OCR specialist. 
-    Analyze the provided images of medication documents and bottles (some may be supplement bottles like vitamins).
-    
-    TASKS:
-    1. EXTRACT Medication Details:
-       - Name, Dosage, Frequency.
-       - Identify Source (HOSPITAL/HOME).
-       - **Classify Category**: Determine if the medication is 'OTC' (Over-the-Counter, e.g., vitamins, ibuprofen, supplements) or 'Rx' (Prescription). Use your pharmaceutical knowledge based on the drug name.
-       - **Reasoning**: For every medication, you MUST provide a 'reasoning' field. Explain briefly *why* you extracted that frequency. Did you see "Take 1 daily"? Did you see "BID"? Quote the text from the image to justify your extraction.
+  You are an expert Clinical Pharmacist and AI Assistant.
+  
+  I will provide you with images of Hospital Discharge Summaries, Prescription Lists, or Medication Labels (bottles).
 
-    2. CRITICAL: FIND THE INSTRUCTIONS FOR BOTTLES:
-       - Supplement bottles often have a huge list of "Supplement Facts" or "Ingredients". **IGNORE THIS LIST** for the purpose of dosage frequency.
-       - Look specifically for small sections labeled **"Directions"**, **"Suggested Use"**, **"Dosage"**, or **"Posologie"**.
-       - Extract the frequency (e.g., "1 capsule daily", "2 tablets twice a day") from these sections.
-       - If a range is given (e.g., "1 to 2 capsules"), pick the maximum for safety or note "1-2".
+  YOUR MISSION:
+  Perform "Medication Reconciliation" by analyzing the text in the provided images.
 
-    3. CREATE SCHEDULE:
-       - Assign each medication to Morning, Noon, Evening, or Bedtime.
-       - "Daily" or "Once a day" -> Morning.
-       - "Twice a day" -> Morning and Evening.
-       - "Three times a day" -> Morning, Noon, Evening.
-       - "HS" or "Bedtime" -> Bedtime.
+  STEP-BY-STEP INSTRUCTIONS:
+  
+  1. **EXTRACT**: 
+     - Read the images carefully. Extract all medication names, dosages, frequencies, and instructions.
+     - If an image is a Bottle Label: Focus on the "Directions" or "Dosage" section. Ignore long ingredient lists unless they clarify the active drug name.
+     - If an image is a Discharge Summary: Pay attention to "New Prescriptions" vs "Discontinue" lists.
 
-    4. SAFETY CHECK (Human-in-the-loop preparation):
-       - Detect duplicates (e.g., same ingredient in Hospital list and Home bottle).
-       - Flag interactions.
-       - For every warning, **you must list the IDs of the medications involved** in the 'relatedMedicationIds' field.
-    
-    Output strictly valid JSON matching the schema.
-  `;
+  2. **MERGE & DEDUPLICATE**:
+     - If the same medication appears in multiple images, merge them into a single entry.
+     - If there is a conflict (e.g., Bottle says 10mg, Summary says 20mg), use the Discharge Summary (Doctor's order) as the source of truth, but flag it in the 'reasoning'.
+
+  3. **GENERATE SCHEDULE**:
+     - Create a daily schedule (Morning, Noon, Evening, Bedtime) including ALL active medications.
+     - Rules: "QD" = Morning; "BID" = Morning + Evening; "TID" = Morning + Noon + Evening; "HS" = Bedtime.
+
+  4. **SAFETY ANALYSIS (Critical)**:
+     - Check for **Drug-Drug Interactions** between identified medications.
+     - Check for **Duplications** (e.g., "Advil" and "Ibuprofen" are the same).
+     - If any issues are found, add them to the "warnings" array with clear descriptions.
+
+  OUTPUT FORMAT:
+  Return strictly valid JSON matching the Schema provided. Do not include markdown formatting.
+`;
 
   // Prepare parts
   const parts: any[] = [{ text: prompt }];

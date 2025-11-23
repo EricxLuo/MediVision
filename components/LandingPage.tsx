@@ -13,6 +13,7 @@ export const LandingPage: React.FC<Props> = ({ onLogin, logoUrl }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState(false);
   
   // 3D Tilt State
   const cardRef = useRef<HTMLDivElement>(null);
@@ -36,13 +37,24 @@ export const LandingPage: React.FC<Props> = ({ onLogin, logoUrl }) => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username) return; 
+    if (!username || !password) return; 
     
     setIsLoading(true);
+    setError(false);
+
     // Simulate secure authentication delay
     setTimeout(() => {
       setIsLoading(false);
-      onLogin(username);
+      
+      // Hardcoded credentials for demo
+      if (username.toLowerCase() === 'admin' && password === 'password') {
+        onLogin(username);
+      } else {
+        setError(true);
+        setPassword(''); // Clear password on error
+        // Trigger a small vibration on mobile devices if supported
+        if (navigator.vibrate) navigator.vibrate(200);
+      }
     }, 1200);
   };
 
@@ -77,7 +89,7 @@ export const LandingPage: React.FC<Props> = ({ onLogin, logoUrl }) => {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-4">
+            <div className={`space-y-4 transition-all duration-300 ${error ? 'translate-x-[-5px] translate-x-[5px] animate-pulse' : ''}`}>
               <div className="group">
                 <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2 ml-1">
                   Username
@@ -85,9 +97,9 @@ export const LandingPage: React.FC<Props> = ({ onLogin, logoUrl }) => {
                 <input 
                   type="text" 
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-[#F5F5F7] border-none rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all duration-300 font-medium"
-                  placeholder="Enter Username"
+                  onChange={(e) => { setUsername(e.target.value); setError(false); }}
+                  className={`w-full bg-[#F5F5F7] border rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 transition-all duration-300 font-medium ${error ? 'border-red-300 focus:ring-red-100' : 'border-transparent focus:ring-[#0071e3]/30'}`}
+                  placeholder="Enter Username (admin)"
                   required
                 />
               </div>
@@ -98,21 +110,27 @@ export const LandingPage: React.FC<Props> = ({ onLogin, logoUrl }) => {
                 <input 
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#F5F5F7] border-none rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all duration-300 font-medium"
-                  placeholder="••••••••"
+                  onChange={(e) => { setPassword(e.target.value); setError(false); }}
+                  className={`w-full bg-[#F5F5F7] border rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 transition-all duration-300 font-medium ${error ? 'border-red-300 focus:ring-red-100' : 'border-transparent focus:ring-[#0071e3]/30'}`}
+                  placeholder="•••••••• (password)"
                   required
                 />
               </div>
             </div>
+            
+            {error && (
+              <p className="text-red-500 text-xs text-center font-medium animate-fade-in">
+                Invalid credentials. Please try again.
+              </p>
+            )}
 
             <div className="pt-2">
               <Button 
                 type="submit" 
-                className="w-full h-12 text-[15px] font-medium tracking-wide shadow-xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-300 transform active:scale-[0.98]"
+                className={`w-full h-12 text-[15px] font-medium tracking-wide shadow-xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-300 transform active:scale-[0.98] ${error ? 'bg-red-500 hover:bg-red-600 shadow-red-500/20' : ''}`}
                 isLoading={isLoading}
               >
-                Sign In
+                {error ? 'Try Again' : 'Sign In'}
               </Button>
             </div>
           </form>

@@ -1,3 +1,5 @@
+
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './components/Button';
 import { Card } from './components/Card';
@@ -5,6 +7,7 @@ import { MedicationList } from './components/MedicationList';
 import { ScheduleTimeline } from './components/ScheduleTimeline';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
+import { CameraModal } from './components/CameraModal';
 import { analyzeMedicationImages, generateDoctorIcon } from './services/geminiService';
 import { AnalysisResult, AppStatus, Medication, TimeSlot, User, HistoryRecord } from './types';
 import html2canvas from 'html2canvas';
@@ -44,8 +47,10 @@ const BlurOverlay = () => {
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE); // IDLE effectively means Login Screen if no user
+  const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [images, setImages] = useState<File[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
+  
   const [data, setData] = useState<AnalysisResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -82,17 +87,14 @@ export default function App() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setImages(prev => [...prev, ...Array.from(e.target.files!)]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  // Function to remove an image
-  const handleRemoveImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Function to clear all images
-  const handleClearAllImages = () => {
-    setImages([]);
+  const handleCameraCapture = (files: File[]) => {
+    setImages(prev => [...prev, ...files]);
   };
 
   // Drag and Drop handlers for file upload
@@ -123,11 +125,19 @@ export default function App() {
     }
   };
 
+  const removeImage = (indexToRemove: number) => {
+    setImages(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
   const startAnalysis = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     
-    if (images.length === 0) return;
+    if (images.length === 0) {
+      setErrorMsg("Please upload images or take photos of your medications.");
+      return;
+    }
+
     setStatus(AppStatus.ANALYZING);
     setErrorMsg(null);
 
@@ -143,7 +153,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
       setErrorMsg("Analysis failed. Please try again with clearer images.");
-      setStatus(AppStatus.IDLE); // Go back to upload if fails
+      setStatus(AppStatus.IDLE);
     }
   };
 
@@ -330,9 +340,22 @@ export default function App() {
           </div>
           
           <p className="text-xl font-semibold text-gray-900 mb-2">Upload Documents & Bottles</p>
-          <p className="text-sm text-gray-500 max-w-sm text-center leading-relaxed">
+          <p className="text-sm text-gray-500 max-w-sm text-center leading-relaxed mb-6">
             Drag and drop discharge summaries or photos of medication labels here.
           </p>
+
+          {/* Camera Button Inline */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowCamera(true); }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-full text-sm font-medium hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Take Photo
+          </button>
+
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -343,57 +366,46 @@ export default function App() {
           />
         </div>
         
+        {/* Images Preview Bar */}
         {images.length > 0 && (
           <div className="border-t border-gray-100 bg-gray-50/50 p-6 relative z-20">
-            {/* Clear All Button */}
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-medium text-gray-700">
-                Uploaded Files ({images.length})
-              </h3>
-              <button
-                onClick={handleClearAllImages}
-                className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-1 rounded-full hover:bg-red-50 transition-colors"
+            <div className="flex items-center justify-between mb-4 px-1">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Selected ({images.length})</span>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setImages([]); }}
+                className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors"
               >
                 Clear All
               </button>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide items-start">
               {images.map((img, idx) => (
-                <div key={idx} className="flex-shrink-0 w-24 h-24 rounded-xl bg-white overflow-hidden relative border border-gray-200 shadow-sm group/preview">
+                <div key={`img-${idx}`} className="flex-shrink-0 w-24 h-24 rounded-xl bg-white overflow-hidden relative border border-gray-200 shadow-sm group/preview">
                   <img 
                     src={URL.createObjectURL(img)} 
                     alt="preview" 
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/preview:opacity-100 transition-opacity"></div>
-                  
-                  {/* Remove Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveImage(idx);
-                    }}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold opacity-0 group-hover/preview:opacity-100 hover:bg-red-600 transition-all duration-200 shadow-md"
-                    title="Remove this image"
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                    className="absolute top-1 right-1 w-6 h-6 bg-white text-gray-500 hover:text-red-500 hover:bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 transition-all duration-200 hover:scale-110 z-10"
                   >
-                    ×
+                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
-                  
-                  {/* File name overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white text-[10px] truncate opacity-0 group-hover/preview:opacity-100 transition-opacity">
-                    {img.name}
-                  </div>
                 </div>
               ))}
+
+              {/* Add File Button */}
               <div 
                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-white text-gray-400 hover:border-[#0071e3] hover:text-[#0071e3] cursor-pointer transition-all"
+                className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-white text-gray-400 hover:border-[#0071e3] hover:text-[#0071e3] cursor-pointer transition-all group/add"
+                title="Upload Images"
               >
-                 <span className="text-2xl font-light">+</span>
-                 <span className="text-xs mt-1">Add More</span>
+                 <span className="text-2xl font-light group-hover/add:scale-110 transition-transform">+</span>
               </div>
             </div>
+
             <div className="flex justify-center mt-6">
               <Button 
                 onClick={startAnalysis} 
@@ -406,6 +418,13 @@ export default function App() {
           </div>
         )}
       </Card>
+      
+      {showCamera && (
+        <CameraModal 
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     </div>
   );
 
@@ -536,7 +555,7 @@ export default function App() {
           <Dashboard 
             user={user} 
             history={history} 
-            onNewScan={() => setStatus(AppStatus.IDLE)} // IDLE in this context means 'Upload Mode'
+            onNewScan={() => setStatus(AppStatus.IDLE)}
             onViewRecord={(record) => {
               setData(record.data);
               setScheduleName(record.scheduleName);
