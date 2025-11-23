@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './components/Button';
 import { Card } from './components/Card';
@@ -7,8 +8,8 @@ import { ScheduleTimeline } from './components/ScheduleTimeline';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { CameraModal } from './components/CameraModal';
-import { analyzeMedicationImages, generateDoctorIcon } from './services/geminiService';
-import { AnalysisResult, AppStatus, Medication, TimeSlot, User, HistoryRecord } from './types';
+import { analyzeMedicationImages, generateDoctorIcon, translateSchedule } from './services/geminiService';
+import { AnalysisResult, AppStatus, Medication, TimeSlot, User, HistoryRecord, TranslatedContent } from './types';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -58,6 +59,11 @@ export default function App() {
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [scheduleName, setScheduleName] = useState<string>('');
   
+  // Translation State
+  const [currentLanguage, setCurrentLanguage] = useState('English');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedData, setTranslatedData] = useState<TranslatedContent | null>(null);
+  
   // Highlighting state for warnings
   const [highlightedMedIds, setHighlightedMedIds] = useState<string[]>([]);
 
@@ -81,6 +87,12 @@ export default function App() {
     setImages([]);
     setData(null);
     setScheduleName('');
+    resetTranslation();
+  };
+
+  const resetTranslation = () => {
+    setCurrentLanguage('English');
+    setTranslatedData(null);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,6 +153,7 @@ export default function App() {
 
     setStatus(AppStatus.ANALYZING);
     setErrorMsg(null);
+    resetTranslation();
 
     try {
       const imagePayloads = await Promise.all(images.map(async (file) => ({
@@ -202,6 +215,29 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleLanguageChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const lang = e.target.value;
+    setCurrentLanguage(lang);
+    
+    if (lang === 'English') {
+      setTranslatedData(null);
+      return;
+    }
+
+    if (!data) return;
+
+    setIsTranslating(true);
+    try {
+      const result = await translateSchedule(data, lang);
+      setTranslatedData(result);
+    } catch (err) {
+      console.error("Translation failed", err);
+      // Optional: Add user feedback toast
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleDownloadPDF = async () => {
     const element = document.getElementById('report-content');
     if (!element) return;
@@ -223,7 +259,7 @@ export default function App() {
       const finalHeight = (imgHeight * pdfWidth) / imgWidth;
 
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, finalHeight);
-      pdf.save(`medivision-${scheduleName.replace(/\s+/g, '-').toLowerCase() || 'schedule'}.pdf`);
+      pdf.save(`medivision-${scheduleName.replace(/\s+/g, '-').toLowerCase() || 'schedule'}-${currentLanguage}.pdf`);
     } catch (err) {
       console.error("PDF generation failed", err);
     }
@@ -233,6 +269,7 @@ export default function App() {
     setImages([]);
     setData(null);
     setScheduleName('');
+    resetTranslation();
     setStatus(AppStatus.DASHBOARD);
   };
   
@@ -516,6 +553,12 @@ export default function App() {
 
   const renderApprovedView = () => {
     if (!data) return null;
+    
+    // Use translated data if available, otherwise original
+    const displayMeds = translatedData ? translatedData.medications : data.medications;
+    const displayWarnings = translatedData ? translatedData.warnings : data.warnings;
+    const displayLabels = translatedData ? translatedData.labels : undefined;
+
     return (
       <div className="space-y-8 animate-fade-in pb-20">
         <div className="bg-gradient-to-b from-[#34C759]/5 to-transparent border border-[#34C759]/20 rounded-3xl p-12 text-center relative overflow-hidden no-print">
@@ -528,9 +571,46 @@ export default function App() {
             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Reconciliation Complete</h2>
             <p className="text-gray-500 mt-2 text-base">The reconciled medication plan for <strong>{scheduleName}</strong> has been approved.</p>
             
-            <div className="mt-8 flex justify-center gap-4">
-              <Button variant="secondary" onClick={handleDownloadPDF}>Download PDF</Button>
-              <Button variant="primary" onClick={goToDashboard}>Back to Dashboard</Button>
+            <div className="mt-8 flex flex-col items-center gap-4">
+               {/* Language Selector */}
+               <div className="flex items-center gap-2 mb-2">
+                 <label htmlFor="lang-select" className="text-sm font-medium text-gray-600">Language:</label>
+                 <div className="relative">
+                    <select 
+                      id="lang-select"
+                      value={currentLanguage}
+                      onChange={handleLanguageChange}
+                      disabled={isTranslating}
+                      className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-10 rounded-full text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50"
+                    >
+                      <option value="English">English</option>
+                      <option value="Spanish">Spanish</option>
+                      <option value="Chinese (Simplified)">Chinese (Simplified)</option>
+                      <option value="Tagalog">Tagalog</option>
+                      <option value="Vietnamese">Vietnamese</option>
+                      <option value="French">French</option>
+                      <option value="Korean">Korean</option>
+                      <option value="German">German</option>
+                      <option value="Russian">Russian</option>
+                      <option value="Arabic">Arabic</option>
+                      <option value="Hindi">Hindi</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                      {isTranslating ? (
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      )}
+                    </div>
+                 </div>
+               </div>
+
+              <div className="flex justify-center gap-4">
+                <Button variant="secondary" onClick={handleDownloadPDF} disabled={isTranslating}>
+                   {isTranslating ? 'Translating...' : 'Download PDF'}
+                </Button>
+                <Button variant="primary" onClick={goToDashboard}>Back to Dashboard</Button>
+              </div>
             </div>
           </div>
         </div>
@@ -538,10 +618,11 @@ export default function App() {
         <div id="report-content" className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
           <ScheduleTimeline 
             schedule={data.schedule} 
-            medications={data.medications} 
-            warnings={data.warnings}
+            medications={displayMeds} 
+            warnings={displayWarnings}
             mode="print"
             scheduleName={scheduleName}
+            labels={displayLabels}
           />
         </div>
       </div>
@@ -562,6 +643,7 @@ export default function App() {
             onViewRecord={(record) => {
               setData(record.data);
               setScheduleName(record.scheduleName);
+              resetTranslation();
               setStatus(AppStatus.APPROVED);
             }} 
           />

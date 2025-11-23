@@ -1,6 +1,7 @@
 
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { AnalysisResult, SourceType } from '../types';
+import { AnalysisResult, SourceType, TranslatedContent } from '../types';
 
 const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -163,3 +164,113 @@ export const generateDoctorIcon = async (): Promise<string | null> => {
     return null;
   }
 }
+
+// --- Translation Service ---
+
+const translationSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    medications: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING },
+          name: { type: Type.STRING },
+          dosage: { type: Type.STRING },
+          frequency: { type: Type.STRING },
+          instructions: { type: Type.STRING },
+          source: { type: Type.STRING, enum: [SourceType.HOSPITAL, SourceType.HOME] },
+          category: { type: Type.STRING, enum: ['OTC', 'Rx'] },
+          reasoning: { type: Type.STRING }
+        },
+        required: ["id", "name", "dosage", "frequency", "instructions", "source", "category"]
+      }
+    },
+    warnings: {
+      type: Type.ARRAY,
+      items: { 
+        type: Type.OBJECT,
+        properties: {
+          description: { type: Type.STRING },
+          relatedMedicationIds: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["description", "relatedMedicationIds"]
+      }
+    },
+    labels: {
+      type: Type.OBJECT,
+      properties: {
+        reportTitle: { type: Type.STRING },
+        reportSubtitle: { type: Type.STRING },
+        scheduleNameLabel: { type: Type.STRING },
+        dateLabel: { type: Type.STRING },
+        clinicalAlertsTitle: { type: Type.STRING },
+        morning: { type: Type.STRING },
+        morningTime: { type: Type.STRING },
+        noon: { type: Type.STRING },
+        noonTime: { type: Type.STRING },
+        evening: { type: Type.STRING },
+        eveningTime: { type: Type.STRING },
+        night: { type: Type.STRING },
+        nightTime: { type: Type.STRING },
+        tableMedication: { type: Type.STRING },
+        tableType: { type: Type.STRING },
+        tableInstructions: { type: Type.STRING },
+        tableAdministered: { type: Type.STRING },
+        disclaimer: { type: Type.STRING },
+        signature: { type: Type.STRING },
+        labelOTC: { type: Type.STRING },
+        labelRx: { type: Type.STRING },
+      },
+      required: [
+        "reportTitle", "reportSubtitle", "scheduleNameLabel", "dateLabel", 
+        "clinicalAlertsTitle", "morning", "morningTime", "noon", "noonTime", 
+        "evening", "eveningTime", "night", "nightTime", "tableMedication", 
+        "tableType", "tableInstructions", "tableAdministered", "disclaimer", "signature",
+        "labelOTC", "labelRx"
+      ]
+    }
+  },
+  required: ["medications", "warnings", "labels"]
+};
+
+export const translateSchedule = async (
+  data: AnalysisResult,
+  targetLanguage: string
+): Promise<TranslatedContent> => {
+  const prompt = `
+    Translate the provided medication schedule data and UI labels into ${targetLanguage}.
+    
+    INSTRUCTIONS:
+    1. Medications: Translate 'instructions', 'frequency', and 'reasoning'. Keep 'id' IDENTICAL to the input. Keep 'name' and 'dosage' mostly as is, but transliterate if appropriate for the target language (e.g. Chinese).
+    2. Warnings: Translate the 'description'.
+    3. Labels: Translate all the UI label fields in the 'labels' object to ${targetLanguage}.
+    
+    Data to translate:
+    ${JSON.stringify({ medications: data.medications, warnings: data.warnings })}
+  `;
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        role: 'user',
+        parts: [{ text: prompt }]
+      },
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: translationSchema,
+        temperature: 0.1
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from Gemini");
+    return JSON.parse(text) as TranslatedContent;
+
+  } catch (error) {
+    console.error("Translation Error:", error);
+    throw error;
+  }
+};

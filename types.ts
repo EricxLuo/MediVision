@@ -57,3 +57,33 @@ export enum AppStatus {
   REVIEW_PENDING = 'REVIEW_PENDING',
   APPROVED = 'APPROVED'
 }
+
+export interface UILabels {
+  reportTitle: string;
+  reportSubtitle: string;
+  scheduleNameLabel: string;
+  dateLabel: string;
+  clinicalAlertsTitle: string;
+  morning: string;
+  morningTime: string;
+  noon: string;
+  noonTime: string;
+  evening: string;
+  eveningTime: string;
+  night: string;
+  nightTime: string;
+  tableMedication: string;
+  tableType: string;
+  tableInstructions: string;
+  tableAdministered: string;
+  disclaimer: string;
+  signature: string;
+  labelOTC: string;
+  labelRx: string;
+}
+
+export interface TranslatedContent {
+  medications: Medication[];
+  warnings: Warning[];
+  labels: UILabels;
+}
