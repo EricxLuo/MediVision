@@ -410,28 +410,34 @@ export default function App() {
         {images.length > 0 && (
           <div className="border-t border-gray-100 bg-gray-50/90 p-6 -mx-8 -mb-8 rounded-b-[24px] backdrop-blur-xl relative z-30 animate-fade-in shadow-inner">
             <div className="flex items-center justify-between mb-4 px-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Selected ({images.length})</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Scanned Items ({images.length})
+              </span>
               <button 
                 onClick={(e) => { e.stopPropagation(); setImages([]); }}
-                className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                className="text-[10px] font-bold text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full transition-colors uppercase tracking-wide"
               >
                 Clear All
               </button>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide items-start">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide items-start px-1 pt-2">
               {images.map((img, idx) => (
-                <div key={`img-${idx}`} className="flex-shrink-0 w-24 h-24 rounded-xl bg-white overflow-hidden relative border border-gray-200 shadow-sm group/preview">
+                <div key={`img-${idx}`} className="flex-shrink-0 w-24 h-24 rounded-xl bg-white relative border border-gray-200 shadow-sm group/preview animate-fade-in">
                   <img 
                     src={URL.createObjectURL(img)} 
                     alt="preview" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-xl"
                   />
+                  {/* Improved Remove Button */}
                   <button 
                     onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
-                    className="absolute top-1 right-1 w-6 h-6 bg-white text-gray-500 hover:text-red-500 hover:bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 transition-all duration-200 hover:scale-110 z-10"
+                    className="absolute -top-2 -right-2 w-7 h-7 bg-white text-red-500 hover:text-red-600 rounded-full flex items-center justify-center shadow-md border border-gray-100 transition-all duration-200 hover:scale-110 z-10"
+                    title="Remove image"
                   >
-                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                     </svg>
                   </button>
                 </div>
               ))}
@@ -439,10 +445,12 @@ export default function App() {
               {/* Add File Button - Re-triggers input */}
               <div 
                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-white text-gray-400 hover:border-[#0071e3] hover:text-[#0071e3] cursor-pointer transition-all group/add"
+                className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-white/50 hover:bg-white hover:border-[#0071e3] hover:text-[#0071e3] text-gray-400 cursor-pointer transition-all group/add"
                 title="Add more images"
               >
-                 <span className="text-2xl font-light group-hover/add:scale-110 transition-transform">+</span>
+                 <svg className="w-6 h-6 group-hover/add:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                 </svg>
               </div>
             </div>
 
@@ -452,7 +460,7 @@ export default function App() {
                 isLoading={status === AppStatus.ANALYZING}
                 className="w-full sm:w-auto min-w-[240px] shadow-xl shadow-blue-500/20 relative z-30"
               >
-                Start Analysis
+                Analyze {images.length} {images.length === 1 ? 'Item' : 'Items'}
               </Button>
             </div>
           </div>
@@ -550,6 +558,36 @@ export default function App() {
       </div>
     );
   };
+
+  // Add this useEffect to handle Google OAuth callback
+  useEffect(() => {
+  const handleOAuthCallback = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    
+    if (code && state === 'google_signup') {
+      setStatus(AppStatus.ANALYZING); 
+      
+      try {
+
+        setTimeout(() => {
+          setUser({ name: 'New User', id: 'new-user-' + Date.now() });
+          setStatus(AppStatus.DASHBOARD);
+          
+          
+          window.history.replaceState({}, '', window.location.pathname);
+        }, 2000);
+      } catch (error) {
+        console.error('OAuth failed:', error);
+        setErrorMsg('Authentication failed. Please try again.');
+        setStatus(AppStatus.IDLE);
+      }
+    }
+  };
+
+  handleOAuthCallback();
+}, []);
 
   const renderApprovedView = () => {
     if (!data) return null;
