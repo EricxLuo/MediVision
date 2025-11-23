@@ -11,11 +11,6 @@ export default defineConfig(({ mode }) => {
     const apiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
     return {
-<<<<<<< HEAD
-      // base: '/MediVision/', 
-=======
-      base: '/MediVision/', // Make sure this matches your GitHub Repo name exactly
->>>>>>> dffb5d36fafeb428d305bb2e04460cc96b27f054
       server: {
         port: 3000,
         host: '0.0.0.0',
