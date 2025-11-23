@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './components/Button';
 import { Card } from './components/Card';
@@ -74,6 +72,35 @@ export default function App() {
       if (logo) setDoctorLogo(logo);
     };
     fetchLogo();
+  }, []);
+
+  // --- MOVED UP: OAuth Callback Handler (Must be before any returns) ---
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      
+      if (code && state === 'google_signup') {
+        setStatus(AppStatus.ANALYZING); 
+        
+        try {
+          // In a real app, you would exchange the code for a token here
+          setTimeout(() => {
+            setUser({ name: 'New User', id: 'new-user-' + Date.now() });
+            setStatus(AppStatus.DASHBOARD);
+            
+            window.history.replaceState({}, '', window.location.pathname);
+          }, 2000);
+        } catch (error) {
+          console.error('OAuth failed:', error);
+          setErrorMsg('Authentication failed. Please try again.');
+          setStatus(AppStatus.IDLE);
+        }
+      }
+    };
+
+    handleOAuthCallback();
   }, []);
 
   const handleLogin = (username: string) => {
@@ -558,36 +585,6 @@ export default function App() {
       </div>
     );
   };
-
-  // Add this useEffect to handle Google OAuth callback
-  useEffect(() => {
-  const handleOAuthCallback = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
-    
-    if (code && state === 'google_signup') {
-      setStatus(AppStatus.ANALYZING); 
-      
-      try {
-
-        setTimeout(() => {
-          setUser({ name: 'New User', id: 'new-user-' + Date.now() });
-          setStatus(AppStatus.DASHBOARD);
-          
-          
-          window.history.replaceState({}, '', window.location.pathname);
-        }, 2000);
-      } catch (error) {
-        console.error('OAuth failed:', error);
-        setErrorMsg('Authentication failed. Please try again.');
-        setStatus(AppStatus.IDLE);
-      }
-    }
-  };
-
-  handleOAuthCallback();
-}, []);
 
   const renderApprovedView = () => {
     if (!data) return null;
