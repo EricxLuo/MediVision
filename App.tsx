@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './components/Button';
 import { Card } from './components/Card';
@@ -85,11 +84,13 @@ export default function App() {
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages(prev => [...prev, ...Array.from(e.target.files!)]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setImages(prev => [...prev, ...newFiles]);
+    }
+    // Critical: Reset value to allow selecting the same file again if needed
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -309,17 +310,18 @@ export default function App() {
            ← Back to Dashboard
         </Button>
       </div>
-      <Card className={`mb-8 border-2 transition-all duration-500 group shadow-none overflow-hidden relative
+      
+      <Card className={`mb-8 border-2 transition-all duration-500 group shadow-none overflow-visible relative
         ${isDragging 
           ? 'border-[#0071e3] bg-blue-50/50 scale-[1.02] shadow-xl shadow-blue-500/10' 
           : 'border-dashed border-gray-300 bg-white/50 hover:bg-white hover:border-[#0071e3]/50 hover:shadow-2xl hover:shadow-blue-500/10'
         }`}>
         
         {/* Animated background element */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-[24px]"></div>
 
         <div 
-          className="flex flex-col items-center justify-center py-16 cursor-pointer relative z-10"
+          className="flex flex-col items-center justify-center py-16 cursor-pointer relative z-10 rounded-[24px]"
           onClick={() => fileInputRef.current?.click()}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -355,20 +357,21 @@ export default function App() {
             </svg>
             Take Photo
           </button>
-
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            multiple 
-            accept="image/*" 
-            onChange={handleImageUpload} 
-          />
         </div>
         
-        {/* Images Preview Bar */}
+        {/* Input placed here, logically associated but hidden */}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          multiple 
+          accept="image/*" 
+          onChange={handleImageUpload} 
+        />
+        
+        {/* Images Preview Bar - Docked to bottom with negative margins to counteract Card padding */}
         {images.length > 0 && (
-          <div className="border-t border-gray-100 bg-gray-50/50 p-6 relative z-20">
+          <div className="border-t border-gray-100 bg-gray-50/90 p-6 -mx-8 -mb-8 rounded-b-[24px] backdrop-blur-xl relative z-30 animate-fade-in shadow-inner">
             <div className="flex items-center justify-between mb-4 px-1">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Selected ({images.length})</span>
               <button 
@@ -396,11 +399,11 @@ export default function App() {
                 </div>
               ))}
 
-              {/* Add File Button */}
+              {/* Add File Button - Re-triggers input */}
               <div 
                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                 className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-white text-gray-400 hover:border-[#0071e3] hover:text-[#0071e3] cursor-pointer transition-all group/add"
-                title="Upload Images"
+                title="Add more images"
               >
                  <span className="text-2xl font-light group-hover/add:scale-110 transition-transform">+</span>
               </div>
