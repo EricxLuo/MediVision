@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './components/Button';
 import { Card } from './components/Card';
@@ -85,6 +83,16 @@ export default function App() {
     if (e.target.files) {
       setImages(prev => [...prev, ...Array.from(e.target.files!)]);
     }
+  };
+
+  // Function to remove an image
+  const handleRemoveImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Function to clear all images
+  const handleClearAllImages = () => {
+    setImages([]);
   };
 
   // Drag and Drop handlers for file upload
@@ -337,6 +345,19 @@ export default function App() {
         
         {images.length > 0 && (
           <div className="border-t border-gray-100 bg-gray-50/50 p-6 relative z-20">
+            {/* Clear All Button */}
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-medium text-gray-700">
+                Uploaded Files ({images.length})
+              </h3>
+              <button
+                onClick={handleClearAllImages}
+                className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-1 rounded-full hover:bg-red-50 transition-colors"
+              >
+                Clear All
+              </button>
+            </div>
+
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {images.map((img, idx) => (
                 <div key={idx} className="flex-shrink-0 w-24 h-24 rounded-xl bg-white overflow-hidden relative border border-gray-200 shadow-sm group/preview">
@@ -346,6 +367,23 @@ export default function App() {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/preview:opacity-100 transition-opacity"></div>
+                  
+                  {/* Remove Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveImage(idx);
+                    }}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold opacity-0 group-hover/preview:opacity-100 hover:bg-red-600 transition-all duration-200 shadow-md"
+                    title="Remove this image"
+                  >
+                    ×
+                  </button>
+                  
+                  {/* File name overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white text-[10px] truncate opacity-0 group-hover/preview:opacity-100 transition-opacity">
+                    {img.name}
+                  </div>
                 </div>
               ))}
               <div 
@@ -353,6 +391,7 @@ export default function App() {
                 className="flex-shrink-0 flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-white text-gray-400 hover:border-[#0071e3] hover:text-[#0071e3] cursor-pointer transition-all"
               >
                  <span className="text-2xl font-light">+</span>
+                 <span className="text-xs mt-1">Add More</span>
               </div>
             </div>
             <div className="flex justify-center mt-6">
